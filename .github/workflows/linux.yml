@@ -1,0 +1,42 @@
+name: Linux checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - run: |
+          rustup component add rustfmt clippy
+          cargo fmt --all --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+
+  package-and-audit:
+    needs: rust
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - run: sh scripts/package-linux.sh target/bundle
+      - name: Prepare scanner and trusted test signatures
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clamav ntfs-3g
+          mkdir -p "$RUNNER_TEMP/clam-db"
+          sudo mount -t tmpfs -o size=512M,mode=0755 tmpfs "$RUNNER_TEMP/clam-db"
+          docker run --rm --entrypoint /bin/sh -v "$RUNNER_TEMP/clam-db:/db" clamav/clamav:1.4 -ec 'cp /var/lib/clamav/*.cvd /db; chmod 644 /db/*.cvd'
+          # nobody must be able to traverse the database directory, not the checkout.
+          sudo mkdir /mnt/fixture-db
+          sudo mount --bind "$RUNNER_TEMP/clam-db" /mnt/fixture-db
+      - name: Verify staged bytes and run fixtures with networking isolated
+        run: |
+          (cd target/bundle && sha256sum --check --strict SHA256SUMS)
+          sudo unshare --net env CLAM_TEST_DB=/mnt/fixture-db sh tests/linux-fixture.sh target/bundle/fix-windows
+          sudo unshare --net sh tests/ntfs-image.sh target/bundle/fix-windows

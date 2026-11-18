@@ -1,0 +1,20 @@
+[package]
+name = "fix-windows"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+description = "Read-only Windows recovery inventory for a Linux live session"
+publish = false
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+clap = { version = "4", features = ["derive"] }
+nix = { version = "0.31", features = ["fs", "user"] }
+serde_json = "1"
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[workspace]

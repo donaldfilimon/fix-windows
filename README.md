@@ -1,12 +1,14 @@
 # Fix Windows
 
-Use this Linux live-USB workflow to inspect a potentially infected Windows PC while the installed Windows stays off. The script inventories file metadata and can run an offline ClamAV scan. The report can guide file recovery and a later clean install.
+Use this Linux live-USB workflow to inspect a potentially infected Windows PC while the installed Windows stays off. The Rust 2024 `fix-windows` application inventories file metadata and can run an offline ClamAV scan. The report can guide file recovery and a later clean install.
+
+For development checks, the disposable Linux fixture and release next steps, see [PLAN.md](PLAN.md).
 
 ## 1. Prepare on a clean computer
 
 - Have the PC owner approve the boot, inspection, any remote session, and any files to recover or share. For a managed PC, involve its IT administrator. The owner stays present at the PC.
 - Download a supported Ubuntu live image for the PC's architecture. Verify the signed checksum list with the trusted Ubuntu signing key, then verify the ISO against that list before writing the USB. Keep Secure Boot enabled and use the firmware's one-time UEFI boot menu. Choose **Try Ubuntu**. If the USB will not boot with Secure Boot enabled, stop and check the image and firmware setup. [Image verification](https://documentation.ubuntu.com/security/software-integrity/image-verification/) · [Secure Boot](https://documentation.ubuntu.com/security/security-features/platform-protections/secure-boot/)
-- Prepare a separate external disk for reports and recovered files, plus a trusted copy of this script. Check the live environment for Python 3, `ntfs-3g` and, if needed, `cryptsetup`. For the optional scan, prepare a compatible `clamscan` and fresh official signature files on clean media in advance. Stage any needed packages from trusted distro sources. [ClamAV scanning](https://docs.clamav.net/manual/Usage/Scanning.html)
+- Prepare a separate external disk for reports and recovered files, plus a trusted Linux build of the application. On a clean Linux machine matching the live system’s architecture and libc, run `sh scripts/package-linux.sh target/offline-kit` and copy the whole new directory to trusted media. On the live system, enter that directory, verify `sha256sum --check --strict SHA256SUMS`, and use `./fix-windows`. Keep a trusted copy of the manifest separately: checksums detect corruption, not replacement of both files and manifest. The live system does not need Cargo or Python to run the audit. Check it for `ntfs-3g` and, if needed, `cryptsetup`. For the optional scan, prepare a compatible `/usr/bin/clamscan` and fresh official signature files on clean media in advance. Stage any needed packages from trusted distro sources. [ClamAV scanning](https://docs.clamav.net/manual/Usage/Scanning.html)
 - If BitLocker is enabled, have the owner locate the matching recovery key on a clean device or through IT beforehand. The owner enters it locally at the unlock prompt. Keep it out of chat, command arguments, logs and the report. If the key is unavailable, stop before trying to access the encrypted volume. [Microsoft recovery key guide](https://support.microsoft.com/en-us/windows/security/encryption/find-your-bitlocker-recovery-key)
 
 ## 2. Identify and mount Windows read-only
@@ -36,18 +38,31 @@ sudo mount -t ntfs-3g -o "ro,norecover,nodev,nosuid,noexec,uid=$(id -u),gid=$(id
 findmnt --mountpoint /mnt/windows-ro -o TARGET,SOURCE,FSTYPE,OPTIONS
 ```
 
-Confirm the source and `ro` in the output and confirm the root contains the expected Windows installation. Leave the mount layout fixed during the audit. Mount the report disk separately and create a new private directory on it for each run. The script checks for a different filesystem. The owner verifies that it is a different physical disk.
+Confirm the source and `ro` in the output and confirm the root contains the expected Windows installation. Leave the mount layout fixed during the audit. Mount the report disk separately and create a new private directory on it for each run. The application checks for a different filesystem. The owner verifies that it is a different physical disk.
 
 ## 3. Run the audit
 
 Run from trusted media as the live user, without `sudo`. Replace the output path with the actual existing directory on the external report disk.
 
 ```sh
-python3 audit-windows.py /mnt/windows-ro /media/ubuntu/RECOVERY/audit-01
+fix-windows check /mnt/windows-ro /media/ubuntu/RECOVERY/audit-01
+fix-windows audit /mnt/windows-ro /media/ubuntu/RECOVERY/audit-01
 # Optional content scan. Use a fresh output directory.
-python3 audit-windows.py /mnt/windows-ro /media/ubuntu/RECOVERY/audit-02 \
+fix-windows audit /mnt/windows-ro /media/ubuntu/RECOVERY/audit-02 \
   --clam-db /media/ubuntu/RECOVERY/clamav-db
 ```
+
+Replace the former `python3 audit-windows.py` invocation with `fix-windows audit` (examples assume the trusted binary is on `PATH`). `check` validates the directory layout without writing, scanning, certifying signatures, or reserving a report name. `audit` repeats the checks and creates its report exclusively with mode `0600`. Use storage that enforces Unix permissions.
+
+```sh
+fix-windows categories                     # IDs for all eleven categories
+fix-windows audit --help                   # all switches and accepted values
+fix-windows audit /mnt/windows-ro /media/ubuntu/RECOVERY/audit-01 \
+  --category downloads,user-startup --surface profile --kind file \
+  --summary-only --report-name profile-counts.jsonl
+```
+
+Metadata filters intersect; category IDs within `--category` are alternatives. `--kind` accepts `file` or `directory`; `--surface` accepts `system` or `profile`. `--summary-only` retains category counts, skips, errors and scanner messages, so it is **not** a privacy filter. These options do not limit traversal or narrow a requested ClamAV scan. A partial report after interruption is not a completed audit; keep it and use a new report name for the retry.
 
 `windows-audit.jsonl` records Downloads and startup paths, registry hive locations, scheduled tasks, drivers, group policy and WMI repository metadata. It skips symlinks and special files. Review skipped entries and inventory errors. Custom profile locations, redirected Downloads, other partitions, alternate streams, deleted data, firmware, and running memory are outside this workflow. Registry hives and task contents are not interpreted.
 
