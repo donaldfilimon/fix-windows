@@ -3,6 +3,7 @@
 Use this Linux live-USB workflow to inspect a potentially infected Windows PC while the installed Windows stays off. The Rust 2024 `fix-windows` application inventories file metadata and can run an offline ClamAV scan. The report can guide file recovery and a later clean install.
 
 For development checks, the disposable Linux fixture and release next steps, see [PLAN.md](PLAN.md).
+Run `sh tests/package-linux.sh` on GNU/Linux to check bundle handling with stub tools and no mounts.
 
 ## 1. Prepare on a clean computer
 
