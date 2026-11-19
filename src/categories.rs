@@ -6,6 +6,15 @@ pub enum Surface {
     Profile,
 }
 
+impl Surface {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Profile => "profile",
+        }
+    }
+}
+
 pub struct Category {
     pub id: &'static str,
     pub label: &'static str,

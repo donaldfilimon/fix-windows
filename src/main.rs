@@ -104,12 +104,7 @@ fn run() -> Result<u8> {
     match Cli::parse().command {
         Action::Categories => {
             for c in categories::CATEGORIES {
-                println!(
-                    "{}\t{}\t{}",
-                    c.id,
-                    c.surface.to_possible_value().unwrap().get_name(),
-                    c.label
-                )
+                println!("{}\t{}\t{}", c.id, c.surface.as_str(), c.label)
             }
         }
         Action::Check(paths) => {

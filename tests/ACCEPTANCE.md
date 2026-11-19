@@ -1,14 +1,16 @@
-# Recovery audit acceptance record — 2026-11-18
+# Recovery audit acceptance record — 2026-11-19
 
-**Scope:** local working tree, not a published release. The packaged executables were built in Debian Bookworm GNU/Linux guests. Fixture installation used networking; the audits ran under `unshare --net` on Ubuntu 24.04. ARM64 ran natively on Apple Silicon; x86-64 userspace ran under Rosetta, not on a physical x86 PC.
+**Scope:** local software close of the working tree, not a published release and not physical live-media acceptance. Kits were built and fixture-tested in disposable Apple `container` GNU/Linux Bookworm guests (`CAP_SYS_ADMIN`). Fixture package installs used networking; audits ran under `unshare --net`. ARM64 ran natively; x86-64 userspace ran under Rosetta, not on a physical x86 PC.
 
-| Kit (under `target/`) | Tested executable SHA-256 |
+**Source:** tree after `0e0c4e5` (Report emit/sync API) plus the local-close edits in this commit (`.gitignore` for `.work/`, `Surface::as_str` for `categories` output).
+
+| Kit | Tested executable SHA-256 |
 | --- | --- |
-| `kit-amd64/fix-windows` | `5d394d6b5f87cc7e33bd42e901921469ab7f04d27631d02f676417db72892cf1` |
-| `kit-arm64/fix-windows` | `9f18910e0df00b683e5024ff3e43901a128a75663f0fe17188ecc1c285baa69b` |
+| arm64 `bundle/fix-windows` | `03c95efae7d5440a50a8e3a6bbc5c98fefe1f60b4430607d631c65d6f160d61b` |
+| amd64 `bundle-amd64/fix-windows` | `57bea08d6ea31c42f7d9ad80cf90800d603fe8f6af86b24ec26006258cf7e5e2` |
 
-On **both** kits, all package manifest entries verified. `tests/linux-fixture.sh` passed with ClamAV 1.5.4 and official daily DB 28184 (15 Nov 2026); cases included a clean fixture, EICAR outside the metadata filter, and an empty database. `tests/ntfs-image.sh` passed: the entire source image digest was unchanged and non-private destination permissions caused rejection with an empty report. The dated DB is a regression input, not a recommendation for current recovery work.
+On **both** kits, all package manifest entries verified. `tests/package-linux.sh` passed in the ARM64 guest. `tests/linux-fixture.sh` passed with ClamAV 1.4.6 and CVD signatures from `clamav/clamav:1.4` (`daily.cvd` / `main.cvd` / `bytecode.cvd`, reported as `28188` / 19 Nov 2026); cases included a clean fixture, EICAR outside the metadata filter, and an empty database. `tests/ntfs-image.sh` passed: the entire source image digest was unchanged and non-private destination permissions caused rejection with an empty report. The dated DB is a regression input, not a recommendation for current recovery work.
 
-`cargo fmt --all --check`, Clippy with warnings denied, five Rust tests, and actionlint passed locally. No Git remote was configured and no hosted CI run was observed.
+Host `cargo fmt --all --check`, Clippy with warnings denied, five Rust tests, and `cargo build --locked --release` passed on macOS ARM64 (rustc/cargo 1.100.0). Gate evidence: `.work/close-out/` (gitignored). No Git remote was configured and no hosted CI run was observed.
 
-**Open acceptance:** boot the approved live image with Secure Boot on the intended physical PC; verify the kit against a separately trusted manifest and repeat the documented workflow on disposable plain NTFS and BitLocker volumes with a separate physical report disk. Compare encrypted source digests before unlock and after close, verify report permissions, and record only results and tool versions, never the recovery key. No physical boot, BitLocker unlock, or customer recovery was performed in this test.
+**Open acceptance:** create a git remote and observe `.github/workflows/linux.yml`; boot the approved live image with Secure Boot on the intended physical PC; verify the kit against a separately trusted manifest and repeat the documented workflow on disposable plain NTFS and BitLocker volumes with a separate physical report disk. Compare encrypted source digests before unlock and after close, verify report permissions, and record only results and tool versions, never the recovery key. No physical boot, BitLocker unlock, or customer recovery was performed in this test.
