@@ -17,13 +17,26 @@ use std::{
     process::ExitCode,
 };
 
-type Report = BufWriter<File>;
-fn emit(report: &mut Report, event: Value) -> Result<()> {
-    serde_json::to_writer(&mut *report, &event)?;
-    report.write_all(b"\n")?;
-    report.flush()?;
-    Ok(())
+struct Report(BufWriter<File>);
+
+impl Report {
+    fn new(file: File) -> Self {
+        Self(BufWriter::new(file))
+    }
+
+    fn emit(&mut self, event: Value) -> Result<()> {
+        serde_json::to_writer(&mut self.0, &event)?;
+        self.0.write_all(b"\n")?;
+        self.0.flush()?;
+        Ok(())
+    }
+
+    fn sync(&self) -> Result<()> {
+        self.0.get_ref().sync_all()?;
+        Ok(())
+    }
 }
+
 fn checked(paths: &Paths) -> Result<Layout> {
     Layout::check(
         &paths.windows_mount,
@@ -46,25 +59,22 @@ fn run_audit(args: Audit) -> Result<u8> {
         file.metadata()?.permissions().mode() & 0o077 == 0,
         "report filesystem did not enforce private permissions; empty file left at {path:?}"
     );
-    let mut report = BufWriter::new(file);
+    let mut report = Report::new(file);
     let selection = args.selection;
     let audit = (|| -> Result<u8> {
-        emit(
-            &mut report,
-            json!({
-                "event": "audit_started",
-                "started_utc": chrono::Utc::now().to_rfc3339(),
-                "mount": layout.root.to_string_lossy(),
-                "content_scan": layout.database.is_some(),
-                "inventory": "path metadata only; registry and persistence contents are unparsed",
-                "filters": {
-                    "category": selection.category,
-                    "surface": selection.surface.and_then(|s| s.to_possible_value()).map(|v| v.get_name().to_owned()),
-                    "kind": selection.kind.and_then(|k| k.to_possible_value()).map(|v| v.get_name().to_owned()),
-                    "summary_only": selection.summary_only
-                }
-            }),
-        )?;
+        report.emit(json!({
+            "event": "audit_started",
+            "started_utc": chrono::Utc::now().to_rfc3339(),
+            "mount": layout.root.to_string_lossy(),
+            "content_scan": layout.database.is_some(),
+            "inventory": "path metadata only; registry and persistence contents are unparsed",
+            "filters": {
+                "category": selection.category,
+                "surface": selection.surface.and_then(|s| s.to_possible_value()).map(|v| v.get_name().to_owned()),
+                "kind": selection.kind.and_then(|k| k.to_possible_value()).map(|v| v.get_name().to_owned()),
+                "summary_only": selection.summary_only
+            }
+        }))?;
         let complete = inventory::inventory(&layout.root, &selection, &mut report)?;
         let scan = if let Some(db) = &layout.database {
             scanner::scan(
@@ -74,25 +84,18 @@ fn run_audit(args: Audit) -> Result<u8> {
                 &mut report,
             )?
         } else {
-            emit(
-                &mut report,
+            report.emit(
                 json!({"event":"scan_result","outcome":"not requested; zero content scanned"}),
             )?;
             0
         };
         let code = if complete { scan } else { 2 };
-        emit(
-            &mut report,
-            json!({"event":"audit_finished","exit_code":code}),
-        )?;
-        report.get_ref().sync_all()?;
+        report.emit(json!({"event":"audit_finished","exit_code":code}))?;
+        report.sync()?;
         Ok(code)
     })();
     if let Err(e) = &audit {
-        let _ = emit(
-            &mut report,
-            json!({"event":"audit_interrupted","detail":format!("{e:#}")}),
-        );
+        let _ = report.emit(json!({"event":"audit_interrupted","detail":format!("{e:#}")}));
     }
     eprintln!("Report: {path:?}");
     audit

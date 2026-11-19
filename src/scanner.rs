@@ -1,4 +1,4 @@
-use crate::{Report, emit};
+use crate::Report;
 use anyhow::{Context, Result, ensure};
 use serde_json::json;
 use std::{
@@ -18,31 +18,33 @@ const OPTIONS: &[&str] = &[
 ];
 
 pub fn scan(scanner: &Path, root: &Path, database: &Path, report: &mut Report) -> Result<u8> {
-    let command = || {
+    let command = |options: &[&str]| {
         let mut cmd = Command::new(scanner);
-        cmd.current_dir("/").stdin(Stdio::null());
+        cmd.current_dir("/")
+            .stdin(Stdio::null())
+            .args(options)
+            .arg("--database")
+            .arg(database);
         cmd
     };
-    let v = command()
-        .arg("--database")
-        .arg(database)
+    let v = command(&[])
         .arg("--version")
         .output()
         .with_context(|| format!("query {scanner:?}; install the distro clamscan package"))?;
-    emit(
-        report,
-        json!({"event":"scanner_version", "exit_code":v.status.code(), "detail":String::from_utf8_lossy(&[v.stdout,v.stderr].concat()).trim()}),
-    )?;
+    report.emit(json!({
+        "event": "scanner_version",
+        "exit_code": v.status.code(),
+        "detail": String::from_utf8_lossy(&[v.stdout, v.stderr].concat()).trim()
+    }))?;
     ensure!(v.status.success(), "unable to query ClamAV version");
-    emit(
-        report,
-        json!({"event":"scan_started", "database":database.to_string_lossy(), "options":OPTIONS, "scope":"whole supplied mount, subject to engine limits"}),
-    )?;
+    report.emit(json!({
+        "event": "scan_started",
+        "database": database.to_string_lossy(),
+        "options": OPTIONS,
+        "scope": "whole supplied mount, subject to engine limits"
+    }))?;
     let (reader, writer) = io::pipe()?;
-    let mut child = command()
-        .args(OPTIONS)
-        .arg("--database")
-        .arg(database)
+    let mut child = command(OPTIONS)
         .arg("--")
         .arg(root)
         .stdout(writer.try_clone()?)
@@ -52,10 +54,7 @@ pub fn scan(scanner: &Path, root: &Path, database: &Path, report: &mut Report) -
     let stream = BufReader::new(reader)
         .split(b'\n')
         .try_for_each(|line| -> Result<()> {
-            emit(
-                report,
-                json!({"event":"scanner_output", "line":String::from_utf8_lossy(&line?)}),
-            )
+            report.emit(json!({"event":"scanner_output", "line":String::from_utf8_lossy(&line?)}))
         });
     if let Err(error) = stream {
         let _ = child.kill();
@@ -68,10 +67,7 @@ pub fn scan(scanner: &Path, root: &Path, database: &Path, report: &mut Report) -
         Some(1) => (1, "alerts reported"),
         _ => (2, "scan error"),
     };
-    emit(
-        report,
-        json!({"event":"scan_result", "exit_code":status, "outcome":outcome}),
-    )?;
+    report.emit(json!({"event":"scan_result", "exit_code":status, "outcome":outcome}))?;
     Ok(exit)
 }
 

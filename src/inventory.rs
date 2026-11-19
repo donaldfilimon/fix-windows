@@ -2,7 +2,6 @@ use crate::{
     Report,
     categories::classify,
     cli::{Kind, Selection},
-    emit,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -23,10 +22,7 @@ pub fn inventory(root: &Path, selection: &Selection, report: &mut Report) -> Res
             Ok(pair) => pair,
             Err(e) => {
                 *counts.entry("errors").or_default() += 1;
-                emit(
-                    report,
-                    json!({"event":"inventory_error", "detail":e.to_string()}),
-                )?;
+                report.emit(json!({"event":"inventory_error", "detail":e.to_string()}))?;
                 continue;
             }
         };
@@ -65,8 +61,8 @@ pub fn inventory(root: &Path, selection: &Selection, report: &mut Report) -> Res
         if relative.to_str().is_none() {
             row["path_bytes"] = json!(relative.as_os_str().as_encoded_bytes());
         }
-        emit(report, row)?;
+        report.emit(row)?;
     }
-    emit(report, json!({"event":"inventory_summary","counts":counts}))?;
+    report.emit(json!({"event":"inventory_summary","counts":counts}))?;
     Ok(!counts.contains_key("errors"))
 }

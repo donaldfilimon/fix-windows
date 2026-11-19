@@ -2,12 +2,6 @@
 
 The migration replaces the Python runtime, not the recovery operator. Disk identification, BitLocker unlock, mounting, file recovery and reinstallation remain manual. There is no force, quarantine, or repair mode.
 
-## Implemented
-
-- One Rust 2024 binary: `check` (non-writing layout validation), `categories` (discovery), `audit` (metadata inventory with optional full-mount ClamAV).
-- Keep metadata selection independent from content scanning. Preserve JSONL events, non-overwriting reports, and exit codes; record filter choices in the report.
-- Exercise mount and scanner behavior with disposable data; never point the privileged fixture at a Windows installation.
-
 ## Repeatable checks
 
 ```sh

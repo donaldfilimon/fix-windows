@@ -32,7 +32,7 @@ pub enum Kind {
     File,
     Directory,
 }
-#[derive(Args, Default)]
+#[derive(Args)]
 pub struct Selection {
     /// Only report metadata from this surface.
     #[arg(long, value_enum)]
