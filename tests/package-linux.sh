@@ -54,7 +54,30 @@ if sh "$packager" bundle; then
 fi
 (cd bundle && sha256sum --check --strict SHA256SUMS)
 
+mkdir empty-destination
+if sh "$packager" empty-destination; then
+    echo 'packager replaced an existing empty directory' >&2
+    exit 1
+fi
+test -z "$(ls -A empty-destination)"
+
 status=0
 FAIL_CARGO_VERSION=1 sh "$packager" incomplete || status=$?
 test "$status" -eq 42
 test ! -e incomplete
+
+cat > "$fixture/bin/sha256sum" <<'SH'
+#!/bin/sh
+exit 43
+SH
+chmod +x "$fixture/bin/sha256sum"
+
+status=0
+sh "$packager" checksum-failed || status=$?
+test "$status" -eq 43
+test ! -e checksum-failed
+test -z "$(find . -maxdepth 1 -name '.fix-windows.*' -print)"
+rm -- "$fixture/bin/sha256sum"
+
+sh "$packager" checksum-failed
+(cd checksum-failed && sha256sum --check --strict SHA256SUMS)
