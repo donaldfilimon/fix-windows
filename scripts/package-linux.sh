@@ -10,10 +10,11 @@ cargo build --locked --release --target-dir "$target" --target "$host"
 # mkdir, not mkdir -p: never overwrite a previously staged package.
 mkdir -- "$out"
 install -m 755 "$target/$host/release/fix-windows" "$out/fix-windows"
-cp README.md PLAN.md Cargo.lock "$out/"
+set -- README.md PLAN.md Cargo.lock
+cp "$@" "$out/"
 (
     cd -- "$out"
     { ./fix-windows --version; rustc -vV; cargo --version; getconf GNU_LIBC_VERSION; } > BUILD.txt
-    sha256sum fix-windows README.md PLAN.md Cargo.lock BUILD.txt > SHA256SUMS
+    sha256sum fix-windows "$@" BUILD.txt > SHA256SUMS
     sha256sum --check --strict SHA256SUMS
 )
