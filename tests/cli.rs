@@ -10,7 +10,7 @@ fn run(args: &[&str]) -> std::process::Output {
 fn categories_and_help_without_mounts() {
     let out = run(&["categories"]);
     assert!(out.status.success());
-    assert_eq!(String::from_utf8(out.stdout).unwrap().lines().count(), 11);
+    assert_eq!(String::from_utf8(out.stdout).unwrap().lines().count(), 12);
     assert!(run(&["audit", "--help"]).status.success());
 }
 #[test]

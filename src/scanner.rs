@@ -83,7 +83,7 @@ mod tests {
             fs::write(&scanner, format!("#!/bin/sh\ncase \"$3\" in --version) echo test-version; exit 0;; esac\nprintf '%s\\n' \"$@\"\necho diagnostic >&2\nexit {status}\n")).unwrap();
             fs::set_permissions(&scanner, fs::Permissions::from_mode(0o700)).unwrap();
             let output = tmp.path().join("report");
-            let mut report = Report::new(fs::File::create(&output).unwrap());
+            let mut report = Report::new(fs::File::create(&output).unwrap(), tmp.path());
             assert_eq!(
                 scan(
                     &scanner,

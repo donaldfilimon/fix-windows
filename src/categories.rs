@@ -76,6 +76,13 @@ pub const CATEGORIES: &[Category] = &[
         true,
     ),
     rule(
+        "policy-users",
+        "local user group policy",
+        System,
+        "windows/system32/grouppolicyusers",
+        true,
+    ),
+    rule(
         "shared-startup",
         "shared startup",
         System,
@@ -142,5 +149,42 @@ mod tests {
             assert_ne!(classify(&format!("{path}-old")).map(|c| c.id), Some(c.id));
             assert_eq!(classify(&format!("{path}/child")).is_some(), c.subtree);
         }
+    }
+
+    #[test]
+    fn shared_startup_precedes_shared_programs() {
+        let startup = CATEGORIES.iter().position(|c| c.id == "shared-startup");
+        let programs = CATEGORIES.iter().position(|c| c.id == "shared-programs");
+        assert!(startup.expect("shared-startup") < programs.expect("shared-programs"));
+        assert_eq!(
+            classify("ProgramData/Microsoft/Windows/Start Menu/Programs/Startup/run.lnk")
+                .map(|c| c.id),
+            Some("shared-startup")
+        );
+    }
+
+    #[test]
+    fn surface_names_match_clap() {
+        for surface in [Surface::System, Surface::Profile] {
+            assert_eq!(
+                surface.as_str(),
+                surface
+                    .to_possible_value()
+                    .expect("ValueEnum name")
+                    .get_name()
+            );
+        }
+    }
+
+    #[test]
+    fn group_policy_users_is_distinct() {
+        assert_eq!(
+            classify("Windows/System32/GroupPolicy/Machine").map(|c| c.id),
+            Some("policy")
+        );
+        assert_eq!(
+            classify("Windows/System32/GroupPolicyUsers/S-1-5-21").map(|c| c.id),
+            Some("policy-users")
+        );
     }
 }

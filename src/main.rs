@@ -17,22 +17,32 @@ use std::{
     process::ExitCode,
 };
 
-struct Report(BufWriter<File>);
+struct Report {
+    file: BufWriter<File>,
+    directory: std::path::PathBuf,
+}
 
 impl Report {
-    fn new(file: File) -> Self {
-        Self(BufWriter::new(file))
+    fn new(file: File, directory: &Path) -> Self {
+        Self {
+            file: BufWriter::new(file),
+            directory: directory.to_path_buf(),
+        }
     }
 
     fn emit(&mut self, event: Value) -> Result<()> {
-        serde_json::to_writer(&mut self.0, &event)?;
-        self.0.write_all(b"\n")?;
-        self.0.flush()?;
+        serde_json::to_writer(&mut self.file, &event)?;
+        self.file.write_all(b"\n")?;
+        self.file.flush()?;
         Ok(())
     }
 
     fn sync(&self) -> Result<()> {
-        self.0.get_ref().sync_all()?;
+        self.file.get_ref().sync_all()?;
+        // Removable report disks can lose the directory entry after a file sync alone.
+        File::open(&self.directory)
+            .with_context(|| format!("open report directory {:?} for sync", self.directory))?
+            .sync_all()?;
         Ok(())
     }
 }
@@ -59,7 +69,7 @@ fn run_audit(args: Audit) -> Result<u8> {
         file.metadata()?.permissions().mode() & 0o077 == 0,
         "report filesystem did not enforce private permissions; empty file left at {path:?}"
     );
-    let mut report = Report::new(file);
+    let mut report = Report::new(file, &layout.output);
     let selection = args.selection;
     let audit = (|| -> Result<u8> {
         report.emit(json!({
@@ -96,6 +106,7 @@ fn run_audit(args: Audit) -> Result<u8> {
     })();
     if let Err(e) = &audit {
         let _ = report.emit(json!({"event":"audit_interrupted","detail":format!("{e:#}")}));
+        let _ = report.sync();
     }
     eprintln!("Report: {path:?}");
     audit

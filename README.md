@@ -56,7 +56,7 @@ fix-windows audit /mnt/windows-ro /media/ubuntu/RECOVERY/audit-02 \
 Replace the former `python3 audit-windows.py` invocation with `fix-windows audit` (examples assume the trusted binary is on `PATH`). `check` validates the directory layout without writing, scanning, certifying signatures, or reserving a report name. `audit` repeats the checks and creates its report exclusively with mode `0600`. Use storage that enforces Unix permissions.
 
 ```sh
-fix-windows categories                     # IDs for all eleven categories
+fix-windows categories                     # IDs for all twelve categories
 fix-windows audit --help                   # all switches and accepted values
 fix-windows audit /mnt/windows-ro /media/ubuntu/RECOVERY/audit-01 \
   --category downloads,user-startup --surface profile --kind file \

@@ -4,7 +4,7 @@ The migration replaces the Python runtime, not the recovery operator. Disk ident
 
 ## Local software close (2026-11-19)
 
-Code and disposable Linux fixtures are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Still open outside this Mac: a git remote with a hosted run of `.github/workflows/linux.yml`, and physical live-USB / BitLocker acceptance on the target PC.
+Code and disposable Linux fixtures are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Remote: `https://github.com/donaldfilimon/fix-windows`. Still open outside this Mac: physical live-USB / BitLocker acceptance on the target PC.
 
 ## Repeatable checks
 
