@@ -4,7 +4,8 @@ permissions:
   contents: read
 jobs:
   rust:
-    runs-on: ubuntu-24.04
+    # Self-hosted while the GitHub account billing lock blocks hosted runners.
+    runs-on: [self-hosted, linux, ARM64, fix-windows]
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
@@ -17,10 +18,7 @@ jobs:
 
   package-and-audit:
     needs: rust
-    strategy:
-      matrix:
-        runner: [ubuntu-24.04, ubuntu-24.04-arm]
-    runs-on: ${{ matrix.runner }}
+    runs-on: [self-hosted, linux, ARM64, fix-windows]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -30,12 +28,17 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y clamav ntfs-3g
-          mkdir -p "$RUNNER_TEMP/clam-db"
-          sudo mount -t tmpfs -o size=512M,mode=0755 tmpfs "$RUNNER_TEMP/clam-db"
-          docker run --rm --entrypoint /bin/sh -v "$RUNNER_TEMP/clam-db:/db" clamav/clamav:1.4 -ec 'cp /var/lib/clamav/*.cvd /db; chmod 644 /db/*.cvd'
-          # nobody must be able to traverse the database directory, not the checkout.
-          sudo mkdir /mnt/fixture-db
-          sudo mount --bind "$RUNNER_TEMP/clam-db" /mnt/fixture-db
+          sudo mkdir -p /mnt/fixture-db
+          sudo mount -t tmpfs -o size=512M,mode=0755 tmpfs /mnt/fixture-db
+          if [ -d /clam-db ] && ls /clam-db/*.cvd >/dev/null 2>&1; then
+            sudo cp /clam-db/*.cvd /mnt/fixture-db/
+            sudo chmod 644 /mnt/fixture-db/*.cvd
+          else
+            mkdir -p "$RUNNER_TEMP/clam-db"
+            sudo mount -t tmpfs -o size=512M,mode=0755 tmpfs "$RUNNER_TEMP/clam-db"
+            docker run --rm --entrypoint /bin/sh -v "$RUNNER_TEMP/clam-db:/db" clamav/clamav:1.4 -ec 'cp /var/lib/clamav/*.cvd /db; chmod 644 /db/*.cvd'
+            sudo mount --bind "$RUNNER_TEMP/clam-db" /mnt/fixture-db
+          fi
       - name: Verify staged bytes and run fixtures with networking isolated
         run: |
           (cd target/bundle && sha256sum --check --strict SHA256SUMS)
