@@ -4,7 +4,7 @@ The migration replaces the Python runtime, not the recovery operator. Disk ident
 
 ## Local software close (2026-11-19)
 
-Code and disposable Linux fixtures are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Remote: `https://github.com/donaldfilimon/fix-windows` (public). Hosted `.github/workflows/linux.yml` is blocked until the GitHub account billing lock is cleared (`The job was not started because your account is locked due to a billing issue.` on run 44644620907). Still open outside this Mac: that billing unlock plus a green hosted run, and physical live-USB / BitLocker acceptance on the target PC.
+Code, disposable Linux fixtures, and a green `.github/workflows/linux.yml` run are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Remote: `https://github.com/donaldfilimon/fix-windows` (public). Green CI: run [44645497583](https://github.com/donaldfilimon/fix-windows/actions/runs/44645497583) on self-hosted Linux ARM64 while GitHub-hosted runners stay billing-locked. Still open outside this Mac: physical live-USB / BitLocker acceptance on the target PC.
 
 ## Repeatable checks
 
