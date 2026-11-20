@@ -68,6 +68,11 @@ rows = [json.loads(line) for line in report.read_text().splitlines()]
 entries = {row["path"]: row["category"] for row in rows if row["event"] == "entry"}
 assert entries["Users/Alice/Downloads/example.txt"] == "downloads"
 assert entries["Windows/System32/Tasks/Example Task"] == "scheduled tasks"
+roles = {row["path"]: row.get("role") for row in rows if row["event"] == "entry"}
+assert roles["Users/Alice/Downloads/example.txt"] == "backup"
+assert roles["Windows/System32/Tasks/Example Task"] == "persistence"
+plan = next(row for row in rows if row["event"] == "recovery_plan")
+assert plan["backup"] == 1 and plan["persistence"] == 1 and plan["hold"] == 0
 assert not any("/outside" in path for path in entries)
 skipped = {row["path"] for row in rows if row["event"] == "skipped_entry"}
 assert skipped == {"Users/Alice/Downloads/outside", "Users/Alice/Downloads/pipe"}

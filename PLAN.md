@@ -4,7 +4,7 @@ The migration replaces the Python runtime, not the recovery operator. Disk ident
 
 ## Local software close (2026-11-19)
 
-Code, disposable Linux fixtures, and a green `.github/workflows/linux.yml` run are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Remote: `https://github.com/donaldfilimon/fix-windows` (public). Green CI: run [44645497583](https://github.com/donaldfilimon/fix-windows/actions/runs/44645497583) on self-hosted Linux ARM64 while GitHub-hosted runners stay billing-locked. The only item this Mac cannot close is release step 1: physical live-USB / BitLocker acceptance on the target PC.
+Code, disposable Linux fixtures, and a green `.github/workflows/linux.yml` run are closed for the current tree: see [tests/ACCEPTANCE.md](tests/ACCEPTANCE.md). Remote: `https://github.com/donaldfilimon/fix-windows` (public). Green CI: run [44645497583](https://github.com/donaldfilimon/fix-windows/actions/runs/44645497583) on self-hosted Linux ARM64 while GitHub-hosted runners stay billing-locked. The report's `recovery_plan` row is the list an operator or model uses, locally or after the owner opens the manual SSH session in the README: copy `backup` files, and review `hold`, `persistence`, and scanner alerts. There is still no delete or repair. The only item this Mac cannot close is release step 1: physical live-USB / BitLocker acceptance on the target PC.
 
 ## Repeatable checks
 

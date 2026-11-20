@@ -2,6 +2,7 @@ mod categories;
 mod cli;
 mod inventory;
 mod layout;
+mod rescue;
 mod scanner;
 
 use anyhow::{Context, Result, ensure};
